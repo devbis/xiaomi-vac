@@ -122,10 +122,12 @@ class XiaomiCloud:
 
     # --- device discovery ----------------------------------------------
     def list_vacuums(self) -> list[dict]:
-        """List all vacuum devices across servers with localip + token.
+        """List owned and shared vacuum devices across Xiaomi servers.
 
-        Returns every device whose model string contains ``.vacuum.``; brand
-        filtering (supported vs. unsupported) is left to the caller.
+        ``home/device_list`` only returns devices owned by the account. Shared
+        homes are exposed by ``v2/homeroom/gethome_merged`` and their devices
+        by ``v2/home/home_device_list``; merge both sources before the caller
+        applies its supported-model filter.
         """
         found: dict[str, dict] = {}  # keyed by did to dedupe across servers
         sightings: dict[str, list[tuple[str, bool]]] = {}  # did -> (region, isOnline)
@@ -169,6 +171,68 @@ class XiaomiCloud:
                     "Discovery duplicate regions=%s kept=%s",
                     ",".join(f"{r}(isOnline={o})" for r, o in seen), found[did]["server"],
                 )
+
+        def add_shared_vacuum(device: dict, server: str) -> None:
+            if not isinstance(device, dict):
+                return
+            model = device.get("model", "")
+            did = device.get("did")
+            if not did or not isinstance(model, str) or ".vacuum." not in model:
+                return
+            entry = found.setdefault(did, {"did": did, "server": server})
+            for key in ("name", "model", "mac", "localip", "token"):
+                value = device.get(key)
+                if value not in (None, "") and entry.get(key) in (None, ""):
+                    entry[key] = value
+
+        for srv in SERVERS:
+            homes_resp = self._call(
+                self._api_url(srv) + "/v2/homeroom/gethome_merged",
+                {"data": json.dumps({
+                    "fg": True,
+                    "fetch_share": True,
+                    "fetch_share_dev": True,
+                    "fetch_cariot": True,
+                    "limit": 300,
+                    "app_ver": 7,
+                    "plat_form": 0,
+                })},
+            )
+            home_result = (homes_resp or {}).get("result") or {}
+            homes = home_result.get("homelist") or []
+            for home in homes:
+                if not isinstance(home, dict):
+                    continue
+                home_id = int(home.get("id") or 0)
+                home_owner = int(home.get("uid") or 0)
+                if not home_id or not home_owner:
+                    continue
+                start_did = ""
+                has_more = True
+                while has_more:
+                    shared_resp = self._call(
+                        self._api_url(srv) + "/v2/home/home_device_list",
+                        {"data": json.dumps({
+                            "home_owner": home_owner,
+                            "home_id": home_id,
+                            "limit": 300,
+                            "start_did": start_did,
+                            "get_split_device": False,
+                            "support_smart_home": True,
+                            "get_cariot_device": True,
+                            "get_third_device": True,
+                        })},
+                    )
+                    result = (shared_resp or {}).get("result") or {}
+                    for device in result.get("device_info") or []:
+                        add_shared_vacuum(device, srv)
+                    next_did = result.get("max_did") or ""
+                    has_more = bool(
+                        result.get("has_more")
+                        and next_did
+                        and next_did != start_did
+                    )
+                    start_did = next_did
         return list(found.values())
 
     def restore_session(self, user_id, ssecurity, service_token, pass_token=None) -> None:
