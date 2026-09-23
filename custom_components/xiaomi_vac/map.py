@@ -126,10 +126,12 @@ class MapFetcher:
     """Owns the map parser; pulls the active map and builds the contract."""
 
     def __init__(self, cloud: XiaomiCloud, *, server: str, user_id: str,
-                 device_id: str, model: str, mac: str, wifi_sn: str, parser_brand: str):
+                 device_id: str, model: str, mac: str, wifi_sn: str, parser_brand: str,
+                 map_owner_id: str | None = None):
         self._cloud = cloud
         self._server = server
         self._user_id = str(user_id)
+        self._map_owner_id = str(map_owner_id or user_id)
         self._device_id = str(device_id)
         self._model = model
         self._mac = mac
@@ -211,7 +213,10 @@ class MapFetcher:
             _LOGGER.debug("dreame enckey poll: %s",
                           "found" if self._enckey else "not found (unencrypted or unavailable)")
         attempt = self.last_attempt = SlotAttempt(slot=slot)
-        url = self._cloud.map_url(self._server, self._device_id, slot, self._endpoint)
+        url = self._cloud.map_url(
+            self._server, self._device_id, slot, self._endpoint,
+            map_owner_id=self._map_owner_id,
+        )
         attempt.url_obtained = bool(url)
         if not url:
             # No URL usually means the cloud session expired; let the
