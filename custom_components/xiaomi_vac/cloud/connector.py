@@ -119,7 +119,7 @@ class XiaomiCloud:
         return "ok" if self.service_token else "fail"
 
     # --- device discovery ----------------------------------------------
-    def list_vacuums(self) -> list[dict]:
+    def list_vacuums(self, server: str | None = None) -> list[dict]:
         """List owned and shared vacuum devices across Xiaomi servers.
 
         ``home/device_list`` only returns devices owned by the account. Shared
@@ -129,7 +129,7 @@ class XiaomiCloud:
         """
         found: dict[str, dict] = {}  # keyed by did to dedupe across servers
 
-        def add_vacuum(device: dict, server: str) -> None:
+        def add_vacuum(device: dict, server: str, map_owner_id: str | int | None) -> None:
             if not isinstance(device, dict):
                 return
             model = device.get("model", "")
@@ -141,14 +141,16 @@ class XiaomiCloud:
                 value = device.get(key)
                 if value not in (None, ""):
                     entry[key] = value
+            if map_owner_id not in (None, ""):
+                entry["map_owner_id"] = str(map_owner_id)
 
-        for srv in SERVERS:
+        for srv in [server] if server else SERVERS:
             resp = self._call(self._api_url(srv) + "/home/device_list",
                               {"data": '{"getVirtualModel":false,"getHuamiDevices":0}'})
             if resp:
                 device_result = resp.get("result") or {}
                 for device in device_result.get("list") or []:
-                    add_vacuum(device, srv)
+                    add_vacuum(device, srv, self.user_id)
 
             homes_resp = self._call(
                 self._api_url(srv) + "/v2/homeroom/gethome_merged",
@@ -189,7 +191,7 @@ class XiaomiCloud:
                     )
                     result = (shared_resp or {}).get("result") or {}
                     for device in result.get("device_info") or []:
-                        add_vacuum(device, srv)
+                        add_vacuum(device, srv, home_owner)
                     next_did = result.get("max_did") or ""
                     has_more = bool(
                         result.get("has_more")
@@ -485,7 +487,8 @@ class XiaomiCloud:
         return self._call(url, {"data": json.dumps(body)})
 
     def map_url(self, server: str, did: str, map_name: str = "0",
-                endpoint: str = "get_interim_file_url_pro") -> str | None:
+                endpoint: str = "get_interim_file_url_pro",
+                map_owner_id: str | int | None = None) -> str | None:
         """Mint a signed download URL for one map object.
 
         Tries the alternate endpoint (get_interim_file_url vs. _pro) on ANY
@@ -496,7 +499,8 @@ class XiaomiCloud:
         endpoint" vs. an actual dead object/session. Always trying both is
         more robust than chasing individual error codes.
         """
-        obj = f"{self.user_id}/{did}/{map_name}"
+        owner_id = self.user_id if map_owner_id in (None, "") else map_owner_id
+        obj = f"{owner_id}/{did}/{map_name}"
         resp = self._try_map_url(server, obj, endpoint)
         if resp is not None:
             return resp
