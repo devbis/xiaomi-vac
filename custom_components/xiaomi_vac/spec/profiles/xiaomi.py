@@ -971,6 +971,15 @@ XIAOMI_OV51GL = replace(
     consumables=None,
 )
 
+# xiaomi.vacuum.ov21cn (Mijia 5 Pro) — every wired siid/piid/aiid and value table
+# matches ov21gl in the public spec; consumables unverified (see ov71gl note above).
+XIAOMI_OV21CN = replace(
+    XIAOMI_OV21GL,
+    profile_id='xiaomi.ov21cn',
+    notes=("urn:miot-spec-v2:device:vacuum:0000A006:xiaomi-ov21cn:2",),
+    consumables=None,
+)
+
 # xiaomi.vacuum.pv21cn (Mijia Robot Vacuum 6 Pro) — same wired siid/piid/aiid
 # as ov21gl, but siid 2 piid 4 (sweep-mop-type) has no "Mop" (2) value.
 # Consumables unverified (see ov71gl note above).

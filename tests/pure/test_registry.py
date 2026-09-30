@@ -70,12 +70,25 @@ def test_pv21cn_resolves_card_baseline_without_mop_mode() -> None:
     assert profile.room_clean.start == Action(2, 16, in_piid=15)
 
 
+def test_ov21cn_resolves_card_baseline_without_consumables() -> None:
+    profile = get_profile("xiaomi.vacuum.ov21cn")
+
+    assert is_supported("xiaomi.vacuum.ov21cn")
+    assert card_baseline_gaps(profile) == ()
+    assert profile is not None
+    assert profile.core is get_profile("xiaomi.vacuum.ov21gl").core
+    assert profile.consumables is None
+    assert profile.room_clean is not None
+    assert profile.room_clean.room_ids == Prop(2, 15)
+    assert profile.room_clean.start == Action(2, 16, in_piid=15)
+
+
 def test_registry_counts_match_card_baseline() -> None:
     supported = [model for model in MODEL_PROFILES if is_supported(model)]
     rejected = [model for model in MODEL_PROFILES if not is_supported(model)]
 
-    assert len(MODEL_PROFILES) == 98
-    assert len(supported) == 79
+    assert len(MODEL_PROFILES) == 99
+    assert len(supported) == 80
     assert len(rejected) == 19
 
 
