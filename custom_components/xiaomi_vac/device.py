@@ -332,9 +332,12 @@ class IjaiVacuumDevice:
         return cap.point_zone if isinstance(cap, MapCapability) else None
 
     def zone_clean_action(self):
-        """Return the verified set-zone-point Action."""
+        """Return the verified Action that carries the zone."""
         point_zone = self._point_zone()
-        return point_zone.set_zone_point if point_zone is not None else None
+        if point_zone is not None:
+            return point_zone.set_zone_point
+        sweep = self.profile.zone_sweep
+        return sweep.start if sweep is not None else None
 
     def zone_clean_start_action(self):
         """Return the verified start-zone-clean Action."""
@@ -348,6 +351,12 @@ class IjaiVacuumDevice:
         if self.zone_clean_action() is None:
             return None
         mm = [round(value * 1000) for value in (x0, y0, x1, y1)]
+        if self.profile.zone_sweep is not None:
+            left, right = sorted((mm[0], mm[2]))
+            bottom, top = sorted((mm[1], mm[3]))
+            region = [left, top, left, bottom, right, bottom, right, top]
+            zones = [{"blocks_region": region, "blocks_attr": 0}]
+            return [json.dumps(zones, separators=(",", ":"))]
         return [f"[{mm[0]},{mm[1]},{mm[2]},{mm[3]},1]"]
 
     def clean_zone(self, x0: float, y0: float, x1: float, y1: float) -> None:
@@ -355,6 +364,9 @@ class IjaiVacuumDevice:
         action = self.zone_clean_action()
         start = self.zone_clean_start_action()
         params = self.zone_clean_params(x0, y0, x1, y1)
+        if self.profile.zone_sweep is not None:
+            self._action(action, params)
+            return
         if (
             action is None
             or action.in_piid is None

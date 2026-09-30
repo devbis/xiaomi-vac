@@ -42,6 +42,12 @@ class PointZoneCapability:
 
 
 @dataclass(frozen=True)
+class ZoneSweepCapability:
+    """Single-Action zone clean: the zone list is one JSON string on the Action's in_piid."""
+    start: Action
+
+
+@dataclass(frozen=True)
 class MapCapability:
     service: int
     map_num: Prop | None = None
@@ -398,6 +404,7 @@ class ModelProfile:
     # the dreame-native variant); consumers isinstance-check where they care.
     map: MapCapability | DreameMapCapability | None = None
     room_clean: RoomCleanCapability | None = None
+    zone_sweep: ZoneSweepCapability | None = None
     schedule: ScheduleCapability | DreameScheduleCapability | None = None
     settings: SettingsCapability | DreameSettingsCapability | None = None
     base_station: BaseStationCapability | None = None

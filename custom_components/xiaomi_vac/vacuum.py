@@ -286,6 +286,8 @@ def _cloud_clean_zone(
     if not _cloud_action_ok(response):
         raise ValueError(f"Xiaomi cloud rejected zone-clean: {response}")
     start = device.zone_clean_start_action()
+    if start is None and device.profile.zone_sweep is not None:
+        return
     if start is None:
         raise ValueError(f"{device.model} has no supported start-zone-clean action")
     response = cloud.cloud_action(server, did, start.siid, start.aiid, [])

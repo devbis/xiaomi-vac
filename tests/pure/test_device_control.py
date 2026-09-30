@@ -173,6 +173,63 @@ def test_clean_zone_rejects_unverified_point_zone_profile(monkeypatch):
         device.clean_zone(0.0, 0.0, 1.0, 1.0)
 
 
+_X20_MODELS = [
+    "xiaomi.vacuum.c107",
+    "xiaomi.vacuum.d101",
+    "xiaomi.vacuum.d102ev",
+    "xiaomi.vacuum.d102gl",
+    "xiaomi.vacuum.d109gl",
+]
+
+
+@pytest.mark.parametrize("model", _X20_MODELS)
+def test_x20_clean_zone_sends_one_zone_sweep_action(monkeypatch, model):
+    device_mod = load_device_module(monkeypatch)
+    device = device_mod.IjaiVacuumDevice("host", "token", model)
+
+    device.clean_zone(0.82, 0.88, 2.66, 2.925)
+
+    assert _last_calls() == [
+        (
+            "action",
+            2,
+            37,
+            ['[{"blocks_region":[820,2925,820,880,2660,880,2660,2925],"blocks_attr":0}]'],
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("zone", "region"),
+    [
+        ((2.66, 2.925, 0.82, 0.88), "[820,2925,820,880,2660,880,2660,2925]"),
+        ((2.66, 0.88, 0.82, 2.925), "[820,2925,820,880,2660,880,2660,2925]"),
+        ((-1.5, 2.25, -0.5, 3.0), "[-1500,3000,-1500,2250,-500,2250,-500,3000]"),
+        ((-0.5, 3.0, -1.5, 2.25), "[-1500,3000,-1500,2250,-500,2250,-500,3000]"),
+    ],
+)
+def test_x20_clean_zone_normalises_corners_to_min_max(monkeypatch, zone, region):
+    device_mod = load_device_module(monkeypatch)
+    device = device_mod.IjaiVacuumDevice("host", "token", "xiaomi.vacuum.d102gl")
+
+    device.clean_zone(*zone)
+
+    assert _last_calls() == [
+        ("action", 2, 37, [f'[{{"blocks_region":{region},"blocks_attr":0}}]'])
+    ]
+
+
+@pytest.mark.parametrize("model", ["xiaomi.vacuum.ov21gl", "dreame.vacuum.p2008"])
+def test_clean_zone_rejects_models_without_a_zone_capability(monkeypatch, model):
+    device_mod = load_device_module(monkeypatch)
+    device = device_mod.IjaiVacuumDevice("host", "token", model)
+
+    assert device.zone_clean_action() is None
+    with pytest.raises(ValueError):
+        device.clean_zone(0.0, 0.0, 1.0, 1.0)
+    assert _last_calls() == []
+
+
 def test_request_map_upload_prefers_upload_by_mapid_ii(monkeypatch):
     device_mod = load_device_module(monkeypatch)
     device = device_mod.IjaiVacuumDevice("host", "token", "ijai.vacuum.v3")

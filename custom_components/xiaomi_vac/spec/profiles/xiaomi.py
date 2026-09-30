@@ -23,6 +23,7 @@ from ..types import (
     ScheduleCapability,
     SettingsCapability,
     VoiceCapability,
+    ZoneSweepCapability,
 )
 
 
@@ -1048,6 +1049,7 @@ XIAOMI_C107 = replace(
     profile_id='xiaomi.c107',
     notes=("urn:miot-spec-v2:device:vacuum:0000A006:xiaomi-c107:2",),
     core=XIAOMI_CORE_C107,
+    zone_sweep=ZoneSweepCapability(start=Action(2, 37, in_piid=12)),  # start-zone-sweep / zone-ids
     consumables=None,
 )
 

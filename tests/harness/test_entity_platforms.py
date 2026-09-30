@@ -13,7 +13,7 @@ from custom_components.xiaomi_vac.button import (
     BaseActionButton,
     async_setup_entry as button_setup,
 )
-from custom_components.xiaomi_vac.device import VacuumStatus
+from custom_components.xiaomi_vac.device import IjaiVacuumDevice, VacuumStatus
 from custom_components.xiaomi_vac.number import VolumeNumber, async_setup_entry as number_setup
 from custom_components.xiaomi_vac.const import (
     CONF_DEVICE_ID,
@@ -626,6 +626,152 @@ async def test_vacuum_clean_zone_rejects_unverified_model(
     cloud_cls.assert_not_called()
     coord.device.clean_zone.assert_not_called()
     coord.async_request_refresh.assert_not_awaited()
+
+
+_CLOUD_SESSION = {
+    CONF_USERNAME: "user@example.com",
+    CONF_USER_ID: "uid",
+    CONF_SSECURITY: "ssec",
+    CONF_SERVICE_TOKEN: "svc",
+    CONF_PASS_TOKEN: "pass",
+    CONF_SERVER: "sg",
+    CONF_DEVICE_ID: "did123",
+}
+_X20_MODELS = [
+    "xiaomi.vacuum.c107",
+    "xiaomi.vacuum.d101",
+    "xiaomi.vacuum.d102ev",
+    "xiaomi.vacuum.d102gl",
+    "xiaomi.vacuum.d109gl",
+]
+_X20_ZONE = [0.82, 0.88, 2.66, 2.925]
+_X20_PAYLOAD = '[{"blocks_region":[820,2925,820,880,2660,880,2660,2925],"blocks_attr":0}]'
+
+
+def _vacuum_on_real_device(
+    hass: HomeAssistant, model: str, entry_data: dict
+) -> tuple[XiaomiVacuum, MagicMock, MagicMock]:
+    """Build the entity around a real profile-driven device with a fake local link."""
+    with patch("custom_components.xiaomi_vac.device.MiotDevice") as miot_cls:
+        device = IjaiVacuumDevice("host", "token", model)
+    coord = _make_coordinator()
+    coord.device = device
+    coord.async_request_refresh = AsyncMock()
+    entry = _make_entry()
+    entry.data = entry_data
+    vac = XiaomiVacuum(coord, entry)
+    vac.hass = hass
+    return vac, coord, miot_cls.return_value
+
+
+@pytest.mark.parametrize("model", _X20_MODELS)
+async def test_x20_clean_zone_uses_cloud_first_with_one_action(
+    hass: HomeAssistant, model: str
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(hass, model, dict(_CLOUD_SESSION))
+    cloud = MagicMock()
+    cloud.cloud_action.return_value = {"code": 0}
+
+    with patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud", return_value=cloud):
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    cloud.cloud_action.assert_called_once_with("sg", "did123", 2, 37, [_X20_PAYLOAD])
+    local.call_action_by.assert_not_called()
+    coord.async_request_refresh.assert_awaited_once()
+
+
+async def test_x20_clean_zone_falls_back_to_local_when_cloud_errors(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(
+        hass, "xiaomi.vacuum.d102gl", dict(_CLOUD_SESSION)
+    )
+    cloud = MagicMock()
+    cloud.restore_session.side_effect = RuntimeError("cloud session invalid")
+
+    with patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud", return_value=cloud):
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    local.call_action_by.assert_called_once_with(2, 37, [_X20_PAYLOAD])
+    coord.async_request_refresh.assert_awaited_once()
+
+
+async def test_x20_clean_zone_falls_back_to_local_when_cloud_rejects(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(
+        hass, "xiaomi.vacuum.d102gl", dict(_CLOUD_SESSION)
+    )
+    cloud = MagicMock()
+    cloud.cloud_action.return_value = {"code": -1}
+
+    with patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud", return_value=cloud):
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    cloud.cloud_action.assert_called_once_with("sg", "did123", 2, 37, [_X20_PAYLOAD])
+    local.call_action_by.assert_called_once_with(2, 37, [_X20_PAYLOAD])
+
+
+async def test_x20_clean_zone_uses_local_without_cloud_session(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(hass, "xiaomi.vacuum.d102gl", {})
+
+    with patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud") as cloud_cls:
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    cloud_cls.assert_not_called()
+    local.call_action_by.assert_called_once_with(2, 37, [_X20_PAYLOAD])
+    coord.async_request_refresh.assert_awaited_once()
+
+
+async def test_x20_clean_zone_local_failure_raises_clean_error(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(hass, "xiaomi.vacuum.d102gl", {})
+    local.call_action_by.side_effect = RuntimeError("boom")
+
+    with pytest.raises(HomeAssistantError, match="Zone cleaning failed"):
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    coord.async_request_refresh.assert_not_awaited()
+
+
+async def test_clean_zone_rejects_model_without_zone_capability_on_real_profile(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(
+        hass, "xiaomi.vacuum.ov21gl", dict(_CLOUD_SESSION)
+    )
+
+    with (
+        patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud") as cloud_cls,
+        pytest.raises(HomeAssistantError, match="no verified zone-clean capability"),
+    ):
+        await vac.async_clean_zone(zone=_X20_ZONE)
+
+    cloud_cls.assert_not_called()
+    local.call_action_by.assert_not_called()
+    coord.async_request_refresh.assert_not_awaited()
+
+
+async def test_ijai_clean_zone_still_sets_zone_then_starts_via_cloud(
+    hass: HomeAssistant,
+) -> None:
+    vac, coord, local = _vacuum_on_real_device(
+        hass, "ijai.vacuum.v17", dict(_CLOUD_SESSION)
+    )
+    cloud = MagicMock()
+    cloud.cloud_action.return_value = {"code": 0}
+
+    with patch("custom_components.xiaomi_vac.vacuum.XiaomiCloud", return_value=cloud):
+        await vac.async_clean_zone(zone=[-1.5, 2.25, -0.5, 3.0])
+
+    assert cloud.cloud_action.call_args_list == [
+        call("sg", "did123", 9, 8, ["[-1500,2250,-500,3000,1]"]),
+        call("sg", "did123", 9, 3, []),
+    ]
+    local.call_action_by.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
