@@ -56,19 +56,33 @@ def test_ov51gl_resolves_card_baseline_without_consumables() -> None:
     assert profile.room_clean.start == Action(2, 16, in_piid=15)
 
 
+def test_pv21cn_resolves_card_baseline_without_mop_mode() -> None:
+    profile = get_profile("xiaomi.vacuum.pv21cn")
+
+    assert is_supported("xiaomi.vacuum.pv21cn")
+    assert card_baseline_gaps(profile) == ()
+    assert profile is not None
+    assert profile.core is not None
+    assert profile.core.modes == {"sweep": 1, "sweep_mop": 3, "sweep_before_mopping": 4}
+    assert profile.consumables is None
+    assert profile.room_clean is not None
+    assert profile.room_clean.room_ids == Prop(2, 15)
+    assert profile.room_clean.start == Action(2, 16, in_piid=15)
+
+
 def test_registry_counts_match_card_baseline() -> None:
     supported = [model for model in MODEL_PROFILES if is_supported(model)]
     rejected = [model for model in MODEL_PROFILES if not is_supported(model)]
 
-    assert len(MODEL_PROFILES) == 97
-    assert len(supported) == 78
+    assert len(MODEL_PROFILES) == 98
+    assert len(supported) == 79
     assert len(rejected) == 19
 
 
 def test_distinct_core_count_matches_promoted_profiles() -> None:
     cores = {repr(profile.core) for profile in MODEL_PROFILES.values() if profile.core}
 
-    assert len(cores) == 24
+    assert len(cores) == 25
 
 
 def test_registered_profiles_include_spec_notes() -> None:

@@ -971,6 +971,22 @@ XIAOMI_OV51GL = replace(
     consumables=None,
 )
 
+# xiaomi.vacuum.pv21cn (Mijia Robot Vacuum 6 Pro) — same wired siid/piid/aiid
+# as ov21gl, but siid 2 piid 4 (sweep-mop-type) has no "Mop" (2) value.
+# Consumables unverified (see ov71gl note above).
+XIAOMI_CORE_PV21CN = replace(
+    XIAOMI_CORE_OV21GL,
+    modes={'sweep': 1, 'sweep_mop': 3, 'sweep_before_mopping': 4},
+)
+
+XIAOMI_PV21CN = replace(
+    XIAOMI_OV21GL,
+    profile_id='xiaomi.pv21cn',
+    notes=("urn:miot-spec-v2:device:vacuum:0000A006:xiaomi-pv21cn:1",),
+    core=XIAOMI_CORE_PV21CN,
+    consumables=None,
+)
+
 # xiaomi.vacuum.ov42gl (Xiaomi Robot Vacuum H50 Pro) — identical spec layout
 # to ov21gl. Unlike ov71gl/ov43gb (unverified aliases), this one is confirmed
 # against a real device's spec cache AND the public MIoT spec DB: every
