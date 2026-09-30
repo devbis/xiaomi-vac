@@ -411,8 +411,8 @@ class IjaiVacuumDevice:
                 return payload
         return []
 
-    def request_map_upload(self, map_id: int) -> dict:
-        """Trigger a fresh upload for a map-list map; returns raw out."""
+    def map_upload_actions(self) -> list:
+        """Return the profile's map-upload Actions in the order they are tried."""
         cap = self.profile.map
         if not isinstance(cap, MapCapability):
             raise ValueError(f"{self.model} has no map-upload capability")
@@ -425,6 +425,11 @@ class IjaiVacuumDevice:
             actions.append(cap.upload_by_mapid_ii)
         if not actions:
             raise ValueError(f"{self.model} has no map-upload capability")
+        return actions
+
+    def request_map_upload(self, map_id: int) -> dict:
+        """Trigger a fresh upload for a map-list map; returns raw out."""
+        actions = self.map_upload_actions()
         last_error: Exception | None = None
         for action in actions:
             try:

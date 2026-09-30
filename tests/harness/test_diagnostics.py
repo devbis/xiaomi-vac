@@ -134,6 +134,9 @@ async def test_diagnostics_download_returns_last_map_cycle(
         "resolved_map_id": 7,
         "resolved_by": "map_list",
         "served": "none",
+        "upload_request_sent": False,
+        "upload_request_route": None,
+        "upload_request_ok": None,
     }
 
 

@@ -252,6 +252,22 @@ def test_request_map_upload_falls_back_to_upload_by_mapid(monkeypatch):
     ]
 
 
+def test_map_upload_actions_lists_upload_by_mapid_ii_then_upload_by_mapid(monkeypatch):
+    device_mod = load_device_module(monkeypatch)
+    device = device_mod.IjaiVacuumDevice("host", "token", "ijai.vacuum.v3")
+
+    assert [(a.siid, a.aiid) for a in device.map_upload_actions()] == [(10, 14), (10, 2)]
+    assert _last_calls() == []
+
+
+def test_map_upload_actions_rejects_a_model_without_map_upload(monkeypatch):
+    device_mod = load_device_module(monkeypatch)
+    device = device_mod.IjaiVacuumDevice("host", "token", "dreame.vacuum.p2008")
+
+    with pytest.raises(ValueError):
+        device.map_upload_actions()
+
+
 def test_map_list_parses_map_list_output(monkeypatch):
     device_mod = load_device_module(monkeypatch)
     device = device_mod.IjaiVacuumDevice("host", "token", "ijai.vacuum.v17")

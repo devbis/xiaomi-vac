@@ -22,6 +22,14 @@ class SlotAttempt:
         }
 
 
+@dataclass
+class UploadRequest:
+    """A map-upload request sent ahead of a cycle: route "cloud" or "local", and whether its reply was ok."""
+
+    route: str
+    ok: bool
+
+
 def describe_map_capability(cap) -> dict | None:
     """Declared MIoT ids of a profile's map capability, or None when it has none.
 
@@ -84,6 +92,7 @@ class MapCycleRecord:
     resolved_map_id: int | None = None
     resolved_by: str | None = None
     served: str = "none"
+    upload_request: UploadRequest | None = None
 
     def set_served(self, *, decoded: bool, have_result: bool) -> None:
         """Record whether the cycle served live data, cache, or nothing.
@@ -104,4 +113,7 @@ class MapCycleRecord:
             "resolved_map_id": self.resolved_map_id,
             "resolved_by": self.resolved_by,
             "served": self.served,
+            "upload_request_sent": self.upload_request is not None,
+            "upload_request_route": self.upload_request.route if self.upload_request else None,
+            "upload_request_ok": self.upload_request.ok if self.upload_request else None,
         }
