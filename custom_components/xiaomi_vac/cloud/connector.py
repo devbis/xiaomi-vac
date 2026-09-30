@@ -128,6 +128,8 @@ class XiaomiCloud:
         filtering (supported vs. unsupported) is left to the caller.
         """
         found: dict[str, dict] = {}  # keyed by did to dedupe across servers
+        sightings: dict[str, list[tuple[str, bool]]] = {}  # did -> (region, isOnline)
+        kept_online: dict[str, bool] = {}
         self.discovery_record = []
         for srv in SERVERS:
             resp = self._call(self._api_url(srv) + "/home/device_list",
@@ -144,8 +146,11 @@ class XiaomiCloud:
                 if ".vacuum." not in model:
                     continue
                 vacuums += 1
-                if did in found:
+                online = d.get("isOnline") is True
+                sightings.setdefault(did, []).append((srv, online))
+                if did in found and (kept_online[did] or not online):
                     continue
+                kept_online[did] = online
                 found[did] = {
                     "name": d.get("name"), "did": did, "model": model,
                     "mac": d.get("mac", ""), "localip": d.get("localip", ""),
@@ -158,6 +163,12 @@ class XiaomiCloud:
                 "Discovery region=%s answered=%s devices=%d vacuums=%d",
                 rec["region"], rec["answered"], rec["devices"], rec["vacuums"],
             )
+        for did, seen in sightings.items():
+            if len(seen) > 1:
+                _LOGGER.debug(
+                    "Discovery duplicate regions=%s kept=%s",
+                    ",".join(f"{r}(isOnline={o})" for r, o in seen), found[did]["server"],
+                )
         return list(found.values())
 
     def restore_session(self, user_id, ssecurity, service_token, pass_token=None) -> None:
