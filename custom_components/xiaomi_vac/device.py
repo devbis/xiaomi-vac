@@ -25,7 +25,11 @@ _WIFI_SN_MAX_LEN = 24
 
 
 def _is_wifi_sn(value: str) -> bool:
-    return _WIFI_SN_MIN_LEN <= len(value) <= _WIFI_SN_MAX_LEN and value.isupper()
+    return (
+        _WIFI_SN_MIN_LEN <= len(value) <= _WIFI_SN_MAX_LEN
+        and value.isalnum()
+        and value == value.upper()
+    )
 
 
 @dataclass
