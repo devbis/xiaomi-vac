@@ -42,7 +42,7 @@ const modelShort = (m) => {
 const MODEL_SHAPE = Object.fromEntries([
   [1, ["dreame.mb1808","dreame.mc1808","xiaomi.ov21gl","xiaomi.ov31gl","xiaomi.ov42gl","xiaomi.ov43gb","dreame.md1808","dreame.p2008","dreame.p2140a","dreame.p2140o","dreame.p2140p","ijai.v10","ijai.v14"]],
   [2, ["dreame.p2029","dreame.p2028","dreame.p2028a","dreame.p2150b","dreame.p2150o"]],
-  [3, ["ijai.v2","ijai.v3","xiaomi.c104","rockrobo.v1","xiaomi.d110ch","xiaomi.d103cn","xiaomi.d102gl","xiaomi.d102ev","xiaomi.d101","xiaomi.c107","xiaomi.c102gl","xiaomi.c102cn","xiaomi.c101eu","xiaomi.c101","dreame.p2114a","dreame.p2114o","dreame.r2210","dreame.r2209","dreame.r2211o","dreame.r2228","dreame.r2228o","dreame.r2228z","dreame.r2232a","dreame.r2233","dreame.r2246","dreame.r2247","dreame.r2254","dreame.s5"]],
+  [3, ["xiaomi.ov51gl","ijai.v2","ijai.v3","xiaomi.c104","rockrobo.v1","xiaomi.d110ch","xiaomi.d103cn","xiaomi.d102gl","xiaomi.d102ev","xiaomi.d101","xiaomi.c107","xiaomi.c102gl","xiaomi.c102cn","xiaomi.c101eu","xiaomi.c101","dreame.p2114a","dreame.p2114o","dreame.r2210","dreame.r2209","dreame.r2211o","dreame.r2228","dreame.r2228o","dreame.r2228z","dreame.r2232a","dreame.r2233","dreame.r2246","dreame.r2247","dreame.r2254","dreame.s5"]],
   [4, ["ijai.v17","ijai.v18","ijai.v19","xiaomi.b106eu"]],
   [5, ["dreame.p2041","dreame.p2041o"]],
   [6, ["dreame.p2009","dreame.p2036"]],

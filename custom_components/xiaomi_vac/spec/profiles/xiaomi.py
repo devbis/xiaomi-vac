@@ -961,6 +961,16 @@ XIAOMI_OV43GB = replace(
     consumables=None,
 )
 
+# xiaomi.vacuum.ov51gl (Xiaomi Robot Vacuum H40) — every wired siid/piid/aiid
+# and value table matches ov21gl in the public spec; consumables unverified
+# (see ov71gl note above).
+XIAOMI_OV51GL = replace(
+    XIAOMI_OV21GL,
+    profile_id='xiaomi.ov51gl',
+    notes=("urn:miot-spec-v2:device:vacuum:0000A006:xiaomi-ov51gl:1",),
+    consumables=None,
+)
+
 # xiaomi.vacuum.ov42gl (Xiaomi Robot Vacuum H50 Pro) — identical spec layout
 # to ov21gl. Unlike ov71gl/ov43gb (unverified aliases), this one is confirmed
 # against a real device's spec cache AND the public MIoT spec DB: every
